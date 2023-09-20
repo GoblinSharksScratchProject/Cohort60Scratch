@@ -3,12 +3,12 @@ const { Session } = require("../models/sessionModel");
 const sessionController = {};
 
 sessionController.setSSIDCookie = async (req, res, next) => {
-  if (res.locals.success) {
-    const { _id } = res.locals.user;
-    console.log("id set cookie", _id);
+  const { success, data } = res.locals.user;
+  if (success === true) {
+    console.log("id set cookie", data._id);
     try {
-      res.cookie("ssid", _id);
-      res.locals.sessionID = _id;
+      res.cookie("ssid", data._id);
+      res.locals.sessionID = data._id;
       return next();
     } catch (err) {
       return next({
@@ -20,15 +20,32 @@ sessionController.setSSIDCookie = async (req, res, next) => {
   return next();
 };
 
+sessionController.logout = async (req, res, next) => {
+  const cookieID = req.cookies.ssid;
+  res.clearCookie("ssid");
+  if (cookieID) {
+    try {
+      await Session.deleteMany({ cookieID });
+    } catch (err) {
+      next({
+        log: "Unable to delete session id",
+        message: "Unable to delete session id",
+        err,
+      });
+    }
+  }
+  return next();
+};
+
 sessionController.startSession = async (req, res, next) => {
-  if (res.locals.success) {
-    const { _id } = res.locals.user;
-    console.log("res locals users", res.locals.user);
+  const { success, data } = res.locals.user;
+  if (success === true) {
+    console.log("start sess res locals users", res.locals.user);
     try {
       //create a session with cookieID
-      const sessiondata = await Session.create({ cookieID: _id });
+      const sessiondata = await Session.create({ cookieID: data._id });
       console.log(sessiondata);
-      res.locals.sessionID = _id;
+      res.locals.sessionID = data._id;
       //invoke middleware
       return next();
     } catch (err) {
@@ -43,8 +60,10 @@ sessionController.startSession = async (req, res, next) => {
 };
 
 sessionController.isLoggedIn = async (req, res, next) => {
+  console.log("req cookies", req.cookies);
+  console.log("req cookies ssid", req.cookies.ssid);
   const isLoggedIn = req.cookies && req.cookies.ssid;
-  console.log(req.cookies, "hi", "isLoggedIn", isLoggedIn);
+
   if (!isLoggedIn) {
     console.log("is false");
     res.locals.isLoggedIn = false;
@@ -55,16 +74,19 @@ sessionController.isLoggedIn = async (req, res, next) => {
       const sessioninfo = await Session.findOne({ cookieID: ssid });
       console.log("session info", sessioninfo);
       if (sessioninfo.cookieID) {
-        res.locals.isLoggedin = true;
+        console.log("cookieid", sessioninfo.cookieID);
+        res.locals.users = ssid;
+        res.locals.isLoggedIn = true;
       } else {
-        res.locals.isLoggedin = false;
+        res.locals.users = ssid;
+        res.locals.isLoggedIn = false;
       }
 
       return next();
     } catch (err) {
       return next({
-        log: "props not passed into isLoggedin.login",
-        message: "props not passed into isLoggedin.login",
+        log: "props not passed into isLoggedIn.login",
+        message: "props not passed into isLoggedIn.login",
       });
     }
   }
