@@ -1,118 +1,105 @@
-const { User } = require('../models/usersModel');
-const { Item } = require('../models/usersModel');
-const path = require('path');
-const bcrypt = require('bcryptjs');
+const { User } = require("../models/usersModel");
+const { Item } = require("../models/usersModel");
+const path = require("path");
+const bcrypt = require("bcryptjs");
 
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require("cloudinary").v2;
 cloudinary.config({
-  cloud_name: 'dlxfkrk48',
-  api_key: '374659647111771',
-  api_secret: 'd_3n7CUCzkxNfibszUer0UrxR2Y',
-  secure: true
+  cloud_name: "dlxfkrk48",
+  api_key: "374659647111771",
+  api_secret: "d_3n7CUCzkxNfibszUer0UrxR2Y",
+  secure: true,
 });
 
 const itemController = {};
 const userController = {};
 
-
-userController.login = (req, res, next) => {
+userController.login = async (req, res, next) => {
   const { username, password } = req.body;
-
-  if (!username || !password) {
+  try {
+    const data = await User.findOne({ username });
+    if (data) {
+      const result = await bcrypt.compare(password, data.password);
+      if (result) {
+        res.locals.user = { data: data, success: true };
+        console.log("locals success", res.locals.user);
+        return next();
+      } else {
+        return next();
+      }
+    } else {
+      res.locals.user = { data: data, success: false };
+      return next();
+    }
+  } catch (err) {
+    console.log(err);
     return next({
-      log: 'props not passed into userController.login',
-      message: 'props not passed into userController.login'
+      err,
+      message: "login failed: error in userController.login",
+      log: "login failed: error in userController.login",
     });
   }
-
-  let loggedIn;
-
-  User.findOne({ username })
-    .then(data => {
-      if (data) {
-        res.locals.user = data;
-        bcrypt
-          .compare(password, res.locals.user.password)
-          .then(result => {
-            if (result) res.locals.success = true;
-            console.log('locals success', res.locals.success)
-            return next();
-          })
-          .catch(err => {
-            return next({
-              err,
-              log: 'userController.login: bcrypt error',
-              message: 'userController.login: bcrypt error'
-            });
-          });
-      }
-      else return next();
-    })
-    .catch(err => {
-      return next({
-        err,
-        message: 'login failed: error in userController.login',
-        log: 'login failed: error in userController.login'
-      });
-    });
 };
 
 userController.signUp = (req, res, next) => {
   const { username, password } = req.body;
+  console.log(req.body);
 
   res.locals.success = true;
 
   if (!username || !password) {
     res.locals.success = false;
     return next({
-      log: 'props not passed into userController.signUp',
-      message: 'props not passed into userController.signUp'
+      log: "props not passed into userController.signUp",
+      message: "props not passed into userController.signUp",
     });
   }
 
   User.findOne({ username })
-    .then(data => {
+    .then((data) => {
       if (data) {
         res.locals.success = false;
         res.locals.exists = true;
         return next({
-          log: 'username already exists, userController.signUp failed',
-          message: 'username already exists, userController.signUp failed'
+          log: "username already exists, userController.signUp failed",
+          message: "username already exists, userController.signUp failed",
         });
       }
     })
-    .catch(err => {
+    .catch((err) => {
       res.locals.success = false;
       return next({
         err,
-        message: 'signup failed: error in finding username in userController.signUp',
-        log: 'signup failed: error in finding username in userController.signUp'
+        message:
+          "signup failed: error in finding username in userController.signUp",
+        log: "signup failed: error in finding username in userController.signUp",
       });
     });
 
   if (res.locals.success) {
     User.create({ username, password })
-      .then(data => {
+      .then((data) => {
         console.log(data);
         res.locals.user = data;
         res.locals.success = true;
         console.log(`User ${username} successfully created!`);
         return next();
       })
-      .catch(err => {
+      .catch((err) => {
         res.locals.success = false;
         return next({
           err,
-          message: 'signup failed: error creating account in userController.signUp',
-          log: 'signup failed: error creating account in userController.signUp'
+          message:
+            "signup failed: error creating account in userController.signUp",
+          log: "signup failed: error creating account in userController.signUp",
         });
       });
   }
-
 };
 
 itemController.createItemListing = (req, res, next) => {
-  const { user, name, date, description, category, city, picture, price} = req.body;
+  const { name, date, description, category, city, picture, price } = req.body;
+  const user = req.cookies.ssid;
   const newItem = {
     user,
     name,
@@ -121,30 +108,27 @@ itemController.createItemListing = (req, res, next) => {
     category,
     city,
     picture,
-    price
-  }
-  console.log('the request body is');
-  console.log(newItem)
+    price,
+  };
+  console.log("the request body is");
+  console.log(newItem);
   Item.create(newItem)
-    .then((info)=>{
+    .then((info) => {
       return next();
     })
     .catch((err) => {
       console.error(err);
       return next({
         status: 400,
-        log: 'createItemListing did not work',
-        message: 'could not post item',
+        log: "createItemListing did not work",
+        message: "could not post item",
       });
     });
-}
-
-
+};
 
 itemController.uploadImage = (req, res, next) => {
   console.log(req.body);
   const { title, desc, image } = req.body;
-
 
   console.log(title, desc);
   console.log(image);
@@ -176,31 +160,27 @@ itemController.uploadImage = (req, res, next) => {
   //   .then(response => {
   //     return next()
   //   });
-
-
 };
 
-userController.getListings = async (req,res,next) => {
-  const {username, password} = req.body;
+userController.getListings = async (req, res, next) => {
+  const { ssid } = req.cookies;
 
   try {
-    const listingInfo = await User.findOne({username}).populate('items')
-    res.locals.listing = listingInfo;
-    return next()
-  }
-  catch {
+    const user = await User.findOne({ _id: ssid });
+    const listingsOwnedByUser = await Item.find({ user: user });
+    res.locals.listings = listingsOwnedByUser;
+    return next();
+  } catch (err) {
     return next({
       status: 400,
-      log: 'getListings did not work',
-      message: 'could not display listings',
+      log: "getListings did not work",
+      message: "could not display listings",
+      err
     });
   }
-
-}
-
-
+};
 
 module.exports = {
   userController,
-  itemController
+  itemController,
 };

@@ -10,11 +10,11 @@ mongoose
 const Schema = mongoose.Schema;
 
 const sessionSchema = new Schema({
-  cookieID: { type: String, required: true, unique: true },
-  createdAt: { type: String, expires: 1, default: Date.now() },
+  cookieID: { type: String, required: true, sparse: true },
+  createdAt: { type: String, expires: 1, default: Date.now(), sparse: true },
 });
 
-const Session = mongoose.model("sessions", sessionSchema);
+const Session = mongoose.model("Sessions", sessionSchema);
 
 module.exports = {
   Session,
