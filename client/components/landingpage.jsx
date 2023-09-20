@@ -3,7 +3,7 @@ import { Link, Redirect } from "react-router-dom";
 import { useNavigate } from "react-router";
 import { CLOUDINARY_CONSTS } from "../constants/actionTypes";
 
-const HomePage = ({ isLoggedIn }) => {
+const HomePage = () => {
   //const navigate = useNavigate();
   // if(!isLoggedIn) {
   //   navigate ('/signup')
@@ -29,7 +29,7 @@ const HomePage = ({ isLoggedIn }) => {
       <br />
       </div>
     </div>
-    
+
   );
 };
 

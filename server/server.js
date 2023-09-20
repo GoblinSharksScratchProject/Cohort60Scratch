@@ -38,49 +38,41 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
-app.get("*", (req, res) => {
-  return res.status(200).sendFile(path.join(__dirname, "../public/index.html"));
+//route for posting an item for sale, runs middleware then currently redirects to /search page
+app.get("/api", sessionController.isLoggedIn, (req, res) => {
+  const isLoggedIn = !!res.locals.isLoggedIn;
+  return res.status(200).send(res.locals.isLoggedIn);
 });
 
-//route for posting an item for sale, runs middleware then currently redirects to /search page
+app.post("/logout", sessionController.logout, (req, res) => {
+  return res.status(201).send();
+});
+
 app.post("/sellItem", itemController.createItemListing, (req, res) => {
   return res.redirect(303, "/searchBar");
   // return res.status(303);
 });
 
-app.post("/login", userController.login, (req, res) => {
-  if (res.locals.success) return res.status(200).json(res.locals.user);
-  else return res.status(200).json({});
-});
-
-app.post("/login", userController.login, (req, res) => {
-  return res.status(200).json(res.locals.user);
-});
+app.post(
+  "/login",
+  userController.login,
+  sessionController.setSSIDCookie,
+  sessionController.startSession,
+  (req, res) => {
+    return res.status(200).json(res.locals.user);
+  }
+);
 
 app.post("/signup", userController.signUp, (req, res) => {
   if (res.locals.success) return res.status(200).json(res.locals.user);
   else return res.status(200).json({});
 });
 
+//
 
-app.get('/api/homebase', (req, res) => {
-  res.status(200).json(true)
-
+app.get("/listings", userController.getListings, (req, res) => {
+  return res.status(200).json(res.locals.listings);
 });
-
-app.get('/login', userController.login, (req, res) => {
-  res.status(200).json(res.locals.success)
-});
-
-app.get("/api/home", sessionController.isLoggedIn, (req, res) => {
-  console.log(res.locals.isLoggedIn, "in the controller");
-  return res.send(res.locals.isLoggedIn);
-});
-
-app.get('/listings', sessionController.isLoggedIn, userController.getListings, (req, res) => {
-  return res.status(200).json(res.locals.listings)
-})
-
 
 //route for fetch get request from searchbar to populate on buttonclick to fetch items with that specific city and item category (useEffect)
 
@@ -100,8 +92,8 @@ app.post("/upload", itemController.uploadImage, (req, res) => {
   return res.status(200).json({});
 });
 
-app.get("/listings", userController.getListings, (req, res) => {
-  return res.status(200).json(res.locals.listings);
+app.get("*", (req, res) => {
+  return res.status(200).sendFile(path.join(__dirname, "../public/index.html"));
 });
 
 // Unknown route handler
